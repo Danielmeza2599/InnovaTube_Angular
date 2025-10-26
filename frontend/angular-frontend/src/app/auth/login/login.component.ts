@@ -7,6 +7,7 @@ import {
   FormGroup,
 } from '@angular/forms';
 import { RouterModule } from '@angular/router'; // Importar el  RouterModule para el link
+import { AuthService } from '../../core/auth.service';
 
 @Component({
   selector: 'app-login',
@@ -17,6 +18,7 @@ import { RouterModule } from '@angular/router'; // Importar el  RouterModule par
 })
 export class LoginComponent {
   private fb = inject(FormBuilder);
+  private authService = inject(AuthService); // Inyectar Auth Servicios
   loginForm: FormGroup;
 
   constructor() {
@@ -24,8 +26,10 @@ export class LoginComponent {
       // Requisitos de 'Inicio de sesión' 
       // De acuerdo al requisito, se puede iniciar sesion con ambas formas
       // Usario o correo electronico
-      usernameOrEmail: ['', [Validators.required]], 
-      password: ['', [Validators.required]],
+
+      // --- PRUEBAS -> Valores por defecto
+      usernameOrEmail: ['test@usuario.com', [Validators.required]], // <-- Valor por defecto para pruebas
+      password: ['123456', [Validators.required]], // <-- Valor por defecto para pruebas
     });
   }
 
@@ -35,6 +39,9 @@ export class LoginComponent {
       // TODO: Agregar la lógica para autenticar contra el backend
       // y en caso de éxito, 
       // TODO: redirigir a la sección principal
+      // --- PRUEBAS ---
+      // Simulacion: usamos el 'usernameOrEmail' como nombre de usuario
+      this.authService.login(this.loginForm.value.usernameOrEmail);
     } else {
       console.log('Formulario Inválido');
       this.loginForm.markAllAsTouched();

@@ -1,0 +1,71 @@
+:host {
+  display: block;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.navbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.8rem 2rem;
+  background-color: #333;
+  color: white;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+.navbar-brand a {
+  font-size: 1.4rem;
+  font-weight: bold;
+  color: white;
+  text-decoration: none;
+}
+
+.navbar-links a {
+  color: #eee;
+  text-decoration: none;
+  margin: 0 1rem;
+  padding: 0.5rem 0;
+  font-size: 1rem;
+  border-bottom: 2px solid transparent;
+  transition: border-color 0.3s ease;
+}
+
+.navbar-links a:hover,
+.navbar-links a.active-link {
+  color: white;
+  border-bottom-color: #007bff;
+}
+
+.navbar-user {
+  display: flex;
+  align-items: center;
+}
+
+.username {
+  margin-right: 1.5rem;
+  font-style: italic;
+}
+
+.logout-button {
+  padding: 0.5rem 1rem;
+  font-size: 0.9rem;
+  background-color: #d9534f;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.logout-button:hover {
+  background-color: #c9302c;
+}
+
+.workspace-area {
+  flex-grow: 1; /* Ocupa el resto del espacio */
+  padding: 1.5rem;
+  background-color: #f4f7f6;
+  overflow-y: auto; /* Para scroll si el contenido es largo */
+}

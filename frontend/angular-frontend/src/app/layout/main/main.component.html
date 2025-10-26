@@ -1,0 +1,24 @@
+<nav class="navbar">
+  <div class="navbar-brand">
+    <a routerLink="/app">InnovaTube - YouTube</a>
+  </div>
+  
+  <div class="navbar-links">
+    <a routerLink="videos" routerLinkActive="active-link">Videos</a>
+    <a routerLink="favorites" routerLinkActive="active-link">Favoritos</a>
+  </div>
+
+  <div class="navbar-user">
+    @if (username$ | async; as username) {
+      <span class="username">
+        Hola, {{ username }}
+      </span>
+    }
+    
+    <button (click)="logout()" class="logout-button">Cerrar Sesión</button>
+  </div>
+</nav>
+
+<main class="workspace-area">
+  <router-outlet></router-outlet>
+</main>
