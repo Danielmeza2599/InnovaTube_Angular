@@ -1,0 +1,19 @@
+.search-bar {
+  margin-bottom: 1.5rem;
+}
+
+.search-bar input {
+  width: 100%;
+  padding: 0.8rem 1rem;
+  font-size: 1.1rem;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  box-sizing: border-box; /* Importante para que el padding no rompa el layout */
+}
+
+.video-grid {
+  display: grid;
+  /* Crea columnas automáticas de 300px min, pero que crezcan para llenar el espacio */
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1.5rem;
+}

@@ -23,13 +23,20 @@ export const routes: Routes = [
     path: 'app',
     loadComponent: () =>
       import('./layout/main/main.component').then((m) => m.MainComponent),
-    canActivate: [authGuard], // Aplicar el Guardia
+    canActivate: [authGuard], // Aplicar el Guardian
     
     // --- Rutas Hijas (El "Área de trabajo") ---
     children: [
       // TODO: COMPONENTES PENDIENTES
-      // VideoListComponent 
-      // FavoritesListComponent 
+      // VideoListComponent
+      {
+        path: 'videos',
+        loadComponent: () =>
+          import('./videos/video-list/video-list.component').then(
+            (m) => m.VideoListComponent
+          ),
+      }, 
+      // FavoritesListComponent --> PENDIENTE
       
       // Redirección por defecto dentro de 'app'
       { path: '', redirectTo: 'videos', pathMatch: 'full' }

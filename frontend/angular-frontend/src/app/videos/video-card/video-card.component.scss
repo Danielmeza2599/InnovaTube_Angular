@@ -1,0 +1,67 @@
+.video-card {
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  background-color: #fff;
+  display: flex;
+  flex-direction: column;
+}
+
+.video-thumbnail {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  display: block;
+}
+
+.video-info {
+  padding: 1rem;
+  flex-grow: 1; /* Ocupa el espacio disponible */
+}
+
+.video-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin: 0 0 0.25rem 0;
+  color: #333;
+}
+
+.video-channel {
+  font-size: 0.9rem;
+  color: #666;
+  margin: 0;
+}
+
+.video-actions {
+  padding: 0 1rem 1rem 1rem;
+  border-top: 1px solid #eee;
+}
+
+.video-actions button {
+  width: 100%;
+  padding: 0.6rem;
+  font-size: 0.9rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background-color: #f9f9f9;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.video-actions button:hover {
+  background-color: #eee;
+  border-color: #aaa;
+}
+
+/* Estilo especial para el botón de favorito */
+.video-actions button.favorite {
+  background-color: #fff3cd;
+  border-color: #ffe69c;
+  color: #856404;
+  font-weight: bold;
+}
+
+.video-actions button.favorite:hover {
+  background-color: #ffeeba;
+}

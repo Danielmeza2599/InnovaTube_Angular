@@ -1,0 +1,12 @@
+<div class="video-card">
+  <img [src]="video.thumbnailUrl" [alt]="video.title" class="video-thumbnail" />
+  <div class="video-info">
+    <h3 class="video-title">{{ video.title }}</h3>
+    <p class="video-channel">{{ video.channelTitle }}</p>
+  </div>
+  <div class="video-actions">
+    <button (click)="toggleFavorite()" [class.favorite]="video.isFavorite">
+      {{ video.isFavorite ? '★ Quitar Favorito' : '☆ Agregar Favorito' }}
+    </button>
+  </div>
+</div>
