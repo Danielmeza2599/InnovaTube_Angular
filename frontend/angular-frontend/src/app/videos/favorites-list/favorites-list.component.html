@@ -1,0 +1,31 @@
+<div class="video-list-container">
+  <div class="search-bar">
+    <input
+      type="text"
+      [formControl]="searchControl"
+      placeholder="Buscar en tus favoritos..."
+    />
+  </div>
+
+  @if (videos$ | async; as videos) {
+    
+    <div class="video-grid">
+      @for (video of videos; track video.id) {
+        <app-video-card
+          [video]="video"
+          (onToggleFavorite)="handleToggleFavorite($event)"
+        ></app-video-card>
+      }
+    </div>
+
+    @if (videos.length === 0) {
+      <div class="no-favorites">
+        <p>Aún no has agregado videos a favoritos.</p>
+        <p>Ve a la sección de "Videos" para agregar algunos.</p>
+      </div>
+    }
+
+  } @else {
+    <p>Cargando favoritos...</p>
+  }
+</div>

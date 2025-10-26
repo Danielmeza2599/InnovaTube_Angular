@@ -13,7 +13,7 @@ const MOCK_VIDEOS: Video[] = [
   },
   {
     id: 'f-hpoIfsVjY',
-    title: '¿Qué es un Contenedor de Docker?',
+    title: 'Conoce mi canal en YouTube',
     channelTitle: 'Meza Technology', // Un guiño a mi canal en youtube 😉
     thumbnailUrl: 'https://img.youtube.com/vi/f-hpoIfsVjY/mqdefault.jpg',
     isFavorite: true, // Marcado como favorito por defecto
@@ -69,7 +69,7 @@ export class VideoService {
     );
   }
 
-  // Obtiene solo los favoritos (para el siguiente paso)
+  // Obtiene solo los favoritos 
   getFavorites(searchTerm: string): Observable<Video[]> {
     return this.getVideos(searchTerm).pipe(
       map((videos) => videos.filter((v) => v.isFavorite))

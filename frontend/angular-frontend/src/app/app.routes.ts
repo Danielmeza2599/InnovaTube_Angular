@@ -27,7 +27,6 @@ export const routes: Routes = [
     
     // --- Rutas Hijas (El "Área de trabajo") ---
     children: [
-      // TODO: COMPONENTES PENDIENTES
       // VideoListComponent
       {
         path: 'videos',
@@ -36,7 +35,14 @@ export const routes: Routes = [
             (m) => m.VideoListComponent
           ),
       }, 
-      // FavoritesListComponent --> PENDIENTE
+      // FavoritesListComponent 
+      {
+        path: 'favorites',
+        loadComponent: () =>
+          import('./videos/favorites-list/favorites-list.component').then(
+            (m) => m.FavoritesListComponent
+          ),
+      },
       
       // Redirección por defecto dentro de 'app'
       { path: '', redirectTo: 'videos', pathMatch: 'full' }
