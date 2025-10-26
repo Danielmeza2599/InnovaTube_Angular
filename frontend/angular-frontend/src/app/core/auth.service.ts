@@ -12,7 +12,7 @@ export class AuthService {
   // Se guarda el nombre de usuario o null si no hay sesión
   private currentUser = new BehaviorSubject<string | null>(null);
   
-  // Exponemos el usuario actual como un Observable
+  // Exponer el usuario actual como un Observable
   public currentUser$ = this.currentUser.asObservable();
 
    // Se inyecta el Router de Angular para poder navegar entre páginas
