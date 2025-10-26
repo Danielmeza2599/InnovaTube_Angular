@@ -48,11 +48,13 @@ export const routes: Routes = [
       { path: '', redirectTo: 'videos', pathMatch: 'full' }
     ]
   },
-
-  // TODO: Ruta 'forgot-password' (aun  pendiente)
+  // ForgotPassword ruta
   {
     path: 'forgot-password',
-    redirectTo: 'login',
+    loadComponent: () =>
+      import('./auth/forgot-password/forgot-password.component').then(
+        (m) => m.ForgotPasswordComponent
+      ),
   },
 
   // redirect si la ruta base está vacía
