@@ -1,169 +1,147 @@
-/* 
-    * Proyecto: InnovaTube
-    * Archivo: index.js
+/* * Proyecto: InnovaTube
+    * Archivo: index.js (Actualizado con PostgreSQL)
     * Descripcion: Servidor Básico
     * Author: Daniel Meza
- */
-require('dotenv').config(); // Carga las variables de entorno desde el archivo .env
-// Permite configurar la aplicación mediante variables de entorno
-const authMiddleware = require('./authMiddleware');// Se importa el middleware
+*/
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-const bcrypt = require('bcrypt'); // para encriptar las contraseñas de forma segura
-const jwt = require('jsonwebtoken'); // estandar para manejar sesiones de usuario en APIs
-// Token JWT (un string encriptado que contiene la info del usuario) y se lo envía de vuelta a Angular.
-const axios = require('axios');// Para hacer peticiones HTTP a la API de Google.
+const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
+const axios = require('axios');
 
-// Inicializar la app de Express
+const authMiddleware = require('./authMiddleware');
+const db = require('./db'); // Importar el 'pool' de DB
+
 const app = express();
-// Para que el front en mi localhost, pueda hablar con este servidor
 app.use(cors());
-// App para recibir los datos de registro y login del front
 app.use(express.json());
 
-// --- Secreto para JWT ---
-// Se cambia el string hardcodeado por la variable de entorno
 const JWT_SECRET = process.env.JWT_SECRET;
-
-// Asegurarse de que JWT_SECRET exista
 if (!JWT_SECRET) {
-  console.error("FATAL ERROR: JWT_SECRET no está definida en el archivo .env");
-  process.exit(1); // Se detendra la aplicación si el secreto no está
+  console.error("FATAL ERROR: JWT_SECRET no está definida");
+  process.exit(1);
 }
 
-// --- Base de Datos Simulada para pruebas... ---
-// TODO: Realizar la BAse de datos real para el proyecto
-const users = [];
-// --- Base de Datos Simulada para Favoritos ---
-// Usarun objeto donde la 'key' es el userId
-// { 1: [videoObj1, videoObj2], 2: [videoObj3] }
-let userFavorites = {};
+// --- RUTAS DE FAVORITOS (Ahora con SQL) ---
 
-// --- Rutas ---
 // OBTENER favoritos del usuario logueado
-app.get('/api/favorites', authMiddleware, (req, res) => {
+app.get('/api/favorites', authMiddleware, async (req, res) => {
   const userId = req.user.userId;
-  const searchTerm = (req.query.q || '').toLowerCase();
+  const searchTerm = (req.query.q || ''); // 'q' es el query param
+  const query = `
+    SELECT * FROM favorites 
+    WHERE user_id = $1 AND (title ILIKE $2 OR channel_title ILIKE $2)
+  `;
+  // ILIKE es case-insensitive (ignora mayúsculas/minúsculas)
+  const values = [userId, `%${searchTerm}%`];
 
-  let favorites = userFavorites[userId] || [];
-
-  // Se filtra por el término de búsqueda (si existe)
-  if (searchTerm) {
-    favorites = favorites.filter(
-      (v) =>
-        v.title.toLowerCase().includes(searchTerm) ||
-        v.channelTitle.toLowerCase().includes(searchTerm)
-    );
+  try {
+    const result = await db.query(query, values);
+    res.json(result.rows);
+  } catch (err) {
+    console.error('Error al obtener favoritos:', err);
+    res.status(500).json({ error: 'Error interno del servidor' });
   }
-
-  console.log(`Petición GET /api/favorites para userId: ${userId}`);
-  res.json(favorites);
 });
 
 // AÑADIR un favorito
-app.post('/api/favorites', authMiddleware, (req, res) => {
+app.post('/api/favorites', authMiddleware, async (req, res) => {
   const userId = req.user.userId;
-  const video = req.body; // El objeto de video (id, title, etc.)
+  const { id, title, thumbnailUrl, channelTitle } = req.body; // 'id' es el video_id
 
-  if (!video || !video.id) {
+  if (!id) {
     return res.status(400).json({ error: 'Datos de video inválidos' });
   }
 
-  // Iniciliza el array si es el primer favorito
-  if (!userFavorites[userId]) {
-    userFavorites[userId] = [];
-  }
+  const query = `
+    INSERT INTO favorites (user_id, video_id, title, thumbnail_url, channel_title)
+    VALUES ($1, $2, $3, $4, $5)
+    ON CONFLICT (user_id, video_id) DO NOTHING 
+    RETURNING *
+  `;
+  // ON CONFLICT... maneja automáticamente los duplicados (gracias al 'UNIQUE' creado)
+  const values = [userId, id, title, thumbnailUrl, channelTitle];
 
-  // Evitar duplicados
-  const exists = userFavorites[userId].find(v => v.id === video.id);
-  if (!exists) {
-    userFavorites[userId].push(video);
+  try {
+    const result = await db.query(query, values);
+    res.status(201).json(result.rows[0]);
+  } catch (err) {
+    console.error('Error al añadir favorito:', err);
+    res.status(500).json({ error: 'Error interno del servidor' });
   }
-  
-  console.log(`Petición POST /api/favorites para userId: ${userId}`);
-  res.status(201).json(video); // 201 Created
 });
 
 // QUITAR un favorito
-app.delete('/api/favorites/:videoId', authMiddleware, (req, res) => {
+app.delete('/api/favorites/:videoId', authMiddleware, async (req, res) => {
   const userId = req.user.userId;
   const { videoId } = req.params;
 
-  if (!userFavorites[userId]) {
-    // Si no tiene favoritos, no hay nada que borrar
-    return res.status(204).send(); // 204 No Content
-  }
-
-  // Filtrar la lista, quitando el video
-  userFavorites[userId] = userFavorites[userId].filter(v => v.id !== videoId);
-
-  console.log(`Petición DELETE /api/favorites/${videoId} para userId: ${userId}`);
-  res.status(204).send(); // 204 No Content
-});
-
-// --- Endpoint para Registro de Usuario ---
-app.post('/api/register', async (req, res) => {
-  console.log('Recibida petición a /api/register');
-  console.log('Datos recibidos:', req.body);
+  const query = 'DELETE FROM favorites WHERE user_id = $1 AND video_id = $2';
+  const values = [userId, videoId];
 
   try {
-    const { nombreApellido, username, email, password } = req.body;
+    await db.query(query, values);
+    res.status(204).send(); // 204 No Content
+  } catch (err) {
+    console.error('Error al quitar favorito:', err);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
 
-    //  Validar si el usuario ya existe
-    const existingUser = users.find(
-      (u) => u.username === username || u.email === email
-    );
-    if (existingUser) {
-      console.log('Error: El usuario o correo ya existe');
-      // si aparece error 409 Conflict: El recurso ya existe
-      return res.status(409).json({ error: 'El usuario o correo ya existe' });
-    }
+// --- Endpoint para Registro de Usuario (con SQL) ---
+app.post('/api/register', async (req, res) => {
+  console.log('Recibida petición a /api/register');
+  const { nombreApellido, username, email, password } = req.body;
 
+  try {
     // Hashear la contraseña
     const saltRounds = 10;
     const hashedPassword = await bcrypt.hash(password, saltRounds);
 
-    // Crear y guardar el nuevo usuario
-    const newUser = {
-      id: users.length + 1,
-      nombreApellido,
-      username,
-      email,
-      password: hashedPassword, // Se guarda la contraseña "hasheada"
-    };
-    users.push(newUser);
+    // Insertar en la base de datos
+    const query = `
+      INSERT INTO users (nombre_apellido, username, email, password)
+      VALUES ($1, $2, $3, $4)
+      RETURNING id, username, email
+    `;
+    const values = [nombreApellido, username, email, hashedPassword];
+    
+    const result = await db.query(query, values);
+    const newUser = result.rows[0];
 
-    console.log('Usuario registrado con éxito:', newUser);
-    console.log('--- Base de datos actual ---', users);
-
-    // Se debe responder al frontend
-    // mensaje 201 Created: Se creo un nuevo recurso
+    console.log('Usuario registrado con éxito en DB:', newUser);
     res.status(201).json({ message: 'Usuario registrado con éxito' });
 
-  } catch (error) {
-    console.error('Error interno del servidor:', error);
+  } catch (err) {
+    // Manejo de errores (ej: usuario ya existe)
+    if (err.code === '23505') { // '23505' es el código de PostgreSQL para 'unique_violation'
+      console.log('Error: El usuario o correo ya existe');
+      return res.status(409).json({ error: 'El usuario o correo ya existe' });
+    }
+    console.error('Error interno del servidor:', err);
     res.status(500).json({ error: 'Error al registrar el usuario' });
   }
 });
 
-// --- Endpoint de Login de Usuario ---
+// --- Endpoint de Login de Usuario (con SQL) ---
 app.post('/api/login', async (req, res) => {
   console.log('Recibida petición a /api/login');
   try {
     const { usernameOrEmail, password } = req.body;
 
-    // Buscar al usuario por username O email
-    const user = users.find(
-      (u) => u.username === usernameOrEmail || u.email === usernameOrEmail
-    );
+    // Para buscar al usuario por username O email
+    const query = 'SELECT * FROM users WHERE username = $1 OR email = $1';
+    const result = await db.query(query, [usernameOrEmail]);
 
-    // SI no se encuentra el usuario, responder con error
-    if (!user) {
+    if (result.rows.length === 0) {
       console.log('Error: Credenciales inválidas (usuario no encontrado)');
       return res.status(401).json({ error: 'Credenciales inválidas' });
     }
 
-    // Se comparara la contraseña del formulario con la hasheada
+    const user = result.rows[0];
+
+    // Se compara la contraseña
     const isPasswordMatch = await bcrypt.compare(password, user.password);
 
     if (!isPasswordMatch) {
@@ -171,92 +149,78 @@ app.post('/api/login', async (req, res) => {
       return res.status(401).json({ error: 'Credenciales inválidas' });
     }
 
-    // Al ser exitoso, crear el Token JWT
-    // El token "firmado" contiene el ID y username del usuario
+    // Se crea el Token JWT
     const token = jwt.sign(
       { userId: user.id, username: user.username },
       JWT_SECRET,
-      { expiresIn: '1h' } // El token expira en 1 hora
+      { expiresIn: '1h' }
     );
 
     console.log('Login exitoso para:', user.username);
-
-    // Enviar el token y datos del usuario al frontend
     res.json({
       message: 'Login exitoso',
       token: token,
       username: user.username,
-      nombreApellido: user.nombreApellido,
+      nombreApellido: user.nombre_apellido, // 'nombre_apellido' de la DB
     });
 
-  } catch (error) {
-    console.error('Error interno del servidor:', error);
+  } catch (err) {
+    console.error('Error interno del servidor:', err);
     res.status(500).json({ error: 'Error interno del servidor' });
   }
 });
 
 
-// --- Endpoint de Búsqueda de YouTube (Protegida) ---
+// --- Endpoint de Búsqueda de YouTube (con SQL) ---
 app.get('/api/search', authMiddleware, async (req, res) => {
-  // Se obtiene el término de búsqueda (query param)
   const searchTerm = req.query.q;
-
   if (!searchTerm) {
     return res.status(400).json({ error: 'Se requiere un término de búsqueda (q)' });
   }
 
-  console.log(`Petición GET /api/search con q=${searchTerm}`);
-
   const YOUTUBE_API_URL = 'https://www.googleapis.com/youtube/v3/search';
   const API_KEY = process.env.YOUTUBE_API_KEY;
 
-  // ---  LÍNEA DE PRUEBA ---
-  console.log('Clave de API que se está usando:', API_KEY);
-
   try {
-    // Se obtiene los favoritos del usuario ANTES de buscar
+    // Se obtiene los favoritos del usuario DESDE LA DB
     const userId = req.user.userId;
-    const userFavs = userFavorites[userId] || [];
-    const favoriteIds = new Set(userFavs.map(v => v.id)); // Un Set para búsqueda rápida
+    const favQuery = 'SELECT video_id FROM favorites WHERE user_id = $1';
+    const favResult = await db.query(favQuery, [userId]);
+    const favoriteIds = new Set(favResult.rows.map(row => row.video_id));
 
-    // ... (Llamada a axios.get(YOUTUBE_API_URL, ...))
+    // Se llama a la API de YouTube
     const response = await axios.get(YOUTUBE_API_URL, {
       params: {
         part: 'snippet',
         q: searchTerm,
-        key: API_KEY,  //se envía la clave a Google
+        key: API_KEY,
         type: 'video',
         maxResults: 10,
-      }
+      },
     });
 
-    // Se formatea la respuesta de YouTube
-    // Se simplifica la respuesta de google
-    // para que coincida con el modelo 'Video' del frontend
+    // Se formatea la respuesta (sin cambios)
     const videos = response.data.items.map((item) => {
       const videoId = item.id.videoId;
       return {
-        id: item.id.videoId, // ID del video
-        title: item.snippet.title, // Título
-        thumbnailUrl: item.snippet.thumbnails.medium.url, // Miniatura
-        channelTitle: item.snippet.channelTitle, // Nombre del canal
-        // Sincronizar 'isFavorite' basado en los favoritos del usuario
-        isFavorite: favoriteIds.has(videoId),
+        id: videoId,
+        title: item.snippet.title,
+        thumbnailUrl: item.snippet.thumbnails.medium.url,
+        channelTitle: item.snippet.channelTitle,
+        isFavorite: favoriteIds.has(videoId), // Sincronizado con la DB
       };
     });
 
-    // Se envian los videos formateados al frontend
     res.json(videos);
 
-  } catch (error) {
-    console.error('Error al buscar en YouTube:', error.response?.data || error.message);
+  } catch (err) {
+    console.error('Error al buscar en YouTube:', err.response?.data || err.message);
     res.status(500).json({ error: 'Error al contactar la API de YouTube' });
   }
 });
 
 // --- Iniciar el Servidor ---
 const PORT = process.env.PORT || 3000;
-
 app.listen(PORT, () => {
   console.log(`Servidor corriendo en el puerto http://localhost:${PORT}`);
 });
