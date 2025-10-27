@@ -17,7 +17,13 @@ const authMiddleware = require('./authMiddleware');
 const db = require('./db'); // Importo el 'pool' de base de datos
 
 const app = express();
-app.use(cors());
+app.use(cors({
+  origin: [
+    'https://innovatube-angular-1.onrender.com',
+    'http://localhost:4200'
+  ],
+  credentials: true
+}));
 app.use(express.json());
 
 const JWT_SECRET = process.env.JWT_SECRET;

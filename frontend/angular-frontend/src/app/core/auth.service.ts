@@ -2,6 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { BehaviorSubject, Observable, tap } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
+import { environment } from '../../environments/environment';
 
 // Interface para las credenciales de login
 interface LoginCredentials {
@@ -26,7 +27,8 @@ export class AuthService {
 
   //private apiUrl = 'http://localhost:3000/api';// <-- URL base del API
   
-  private apiUrl = 'https://innovatube-angular.onrender.com';// <-- ahora al servidor render
+  //rivate apiUrl = 'https://innovatube-angular.onrender.com';// <-- ahora al servidor render
+  private apiUrl = environment.apiUrl; // se usa la URL según el entorno
 
   // El BehaviorSubject sirve para que los componentes puedan suscribirse
   // y reaccionar a los cambios de autenticación.
