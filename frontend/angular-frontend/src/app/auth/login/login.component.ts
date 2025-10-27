@@ -21,29 +21,34 @@ export class LoginComponent {
   private authService = inject(AuthService); // Inyectar Auth Servicios
   loginForm: FormGroup;
 
+  apiError: string | null = null; // <-- Para errores
+
   constructor() {
     this.loginForm = this.fb.group({
       // Requisitos de 'Inicio de sesión' 
       // De acuerdo al requisito, se puede iniciar sesion con ambas formas
       // Usario o correo electronico
-
-      // --- PRUEBAS -> Valores por defecto
-      usernameOrEmail: ['test@usuario.com', [Validators.required]], // <-- Valor por defecto para pruebas
-      password: ['123456', [Validators.required]], // <-- Valor por defecto para pruebas
+      usernameOrEmail: ['', [Validators.required]],
+      password: ['', [Validators.required]],
     });
   }
 
   onSubmit() {
+    this.apiError = null; // Limpiar algun error
     if (this.loginForm.valid) {
-      console.log('Formulario Válido:', this.loginForm.value);
-      // TODO: Agregar la lógica para autenticar contra el backend
-      // y en caso de éxito, 
-      // TODO: redirigir a la sección principal
-      // --- PRUEBAS ---
-      // Simulacion: usamos el 'usernameOrEmail' como nombre de usuario
-      this.authService.login(this.loginForm.value.usernameOrEmail);
+      // Llamar al servicio de autenticación
+      this.authService.login(this.loginForm.value).subscribe({
+        next: (response) => {
+          // El servicio ya maneja la redirección
+          console.log('Login exitoso:', response.message);
+        },
+        error: (err) => {
+          console.error('Error en el login:', err);
+          this.apiError = err.error?.error || 'Error desconocido. Intenta de nuevo.';
+        }
+      });
+
     } else {
-      console.log('Formulario Inválido');
       this.loginForm.markAllAsTouched();
     }
   }

@@ -45,6 +45,12 @@
       <a routerLink="/forgot-password">¿Olvidaste tu contraseña?</a>
     </div>
 
+    @if (apiError) {
+      <div class="api-error-message">
+        <small>{{ apiError }}</small>
+      </div>
+    }
+
     <button type="submit" [disabled]="loginForm.invalid">Iniciar Sesión</button>
     
     <div class="register-link">
