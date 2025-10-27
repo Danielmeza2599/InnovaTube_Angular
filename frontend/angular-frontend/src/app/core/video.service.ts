@@ -8,7 +8,8 @@ import { HttpClient } from '@angular/common/http';
 })
 export class VideoService {
   private http = inject(HttpClient);
-  private apiUrl = 'http://localhost:3000/api'; // URL del backend
+  //private apiUrl = 'http://localhost:3000/api'; // URL del backend
+  private apiUrl = 'https://innovatube-angular.onrender.com/api'; /// PRUEBAS
 
   // getVideos ahora llama directo a la API
   getVideos(searchTerm: string): Observable<Video[]> {
