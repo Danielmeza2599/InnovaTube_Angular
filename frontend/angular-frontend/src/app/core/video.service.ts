@@ -28,7 +28,7 @@ export class VideoService {
     });
   }
 
-  // toggleFavorite devuelve el Observable
+  // ToggleFavorite devuelve el Observable
   toggleFavorite(video: Video): Observable<any> {
     const newFavoriteState = !video.isFavorite;
 
