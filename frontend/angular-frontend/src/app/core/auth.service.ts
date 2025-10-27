@@ -28,7 +28,9 @@ export class AuthService {
   //private apiUrl = 'http://localhost:3000/api';// <-- URL base del API
   
   //rivate apiUrl = 'https://innovatube-angular.onrender.com';// <-- ahora al servidor render
-  private apiUrl = environment.apiUrl; // se usa la URL según el entorno
+  //private apiUrl = environment.apiUrl; // se usa la URL según el entorno
+  // se agrega esto temporalmente para forzar la URL de producción:
+  private apiUrl = 'https://innovatube-angular.onrender.com/api';
 
   // El BehaviorSubject sirve para que los componentes puedan suscribirse
   // y reaccionar a los cambios de autenticación.
