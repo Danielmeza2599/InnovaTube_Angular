@@ -82,7 +82,7 @@ export class RegisterComponent {
       const { recaptcha, confirmPassword, ...userData } = this.registerForm.value;
 
       //const apiUrl = 'http://localhost:3000/api/register';
-      const apiUrl = 'https://innovatube-angular.onrender.com/api';// PRUEBAS
+      const apiUrl = 'https://innovatube-angular.onrender.com/api/register';// PRUEBAS
 
       // Hacer la petición POST
       this.http.post(apiUrl, userData).subscribe({
