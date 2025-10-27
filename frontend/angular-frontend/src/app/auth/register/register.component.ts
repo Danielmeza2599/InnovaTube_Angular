@@ -81,7 +81,8 @@ export class RegisterComponent {
       // Excluir los campos que el backend no necesita (confirmPassword y recaptcha)
       const { recaptcha, confirmPassword, ...userData } = this.registerForm.value;
 
-      const apiUrl = 'http://localhost:3000/api/register';
+      //const apiUrl = 'http://localhost:3000/api/register';
+      const apiUrl = 'https://innovatube-angular.onrender.com/api';// PRUEBAS
 
       // Hacer la petición POST
       this.http.post(apiUrl, userData).subscribe({
