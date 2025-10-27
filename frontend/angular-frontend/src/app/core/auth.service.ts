@@ -24,7 +24,9 @@ export class AuthService {
   private router = inject(Router);
   private http = inject(HttpClient);// Inyectar HttpClient
 
-  private apiUrl = 'http://localhost:3000/api';// <-- URL base del API
+  //private apiUrl = 'http://localhost:3000/api';// <-- URL base del API
+  
+  private apiUrl = 'https://innovatube-angular.onrender.com';// <-- ahora al servidor render
 
   // El BehaviorSubject sirve para que los componentes puedan suscribirse
   // y reaccionar a los cambios de autenticación.
