@@ -45,8 +45,8 @@ export class FavoritesListComponent {
   }
 
   // Misma logica, decirle al servicio que cambie el estado
-  handleToggleFavorite(videoId: string) {
-    this.videoService.toggleFavorite(videoId);
+  handleToggleFavorite(video: Video) {
+    this.videoService.toggleFavorite(video);
   }
 
  

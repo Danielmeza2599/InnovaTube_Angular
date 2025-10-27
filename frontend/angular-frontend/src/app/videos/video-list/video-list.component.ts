@@ -13,6 +13,7 @@ import { Video } from '../../core/models/video.model';
 import { VideoService } from '../../core/video.service';
 import { VideoCardComponent } from '../video-card/video-card.component';
 
+
 // Este componente muestra una lista de videos con funcionalidad de búsqueda en tiempo real
 // Es el componente que coordina entre la UI y los servicios
 @Component({
@@ -62,11 +63,10 @@ export class VideoListComponent {
   }
 
   // Método que maneja el evento cuando el usuario hace clic en favorito
-  // Recibe el ID del video desde el componente hijo VideoCardComponent
-  handleToggleFavorite(videoId: string) {
+  handleToggleFavorite(video: Video) {
     // Delega la lógica de favoritos al servicio
     // El servicio se encarga de actualizar el estado y persistir en localStorage
-    this.videoService.toggleFavorite(videoId);
+    this.videoService.toggleFavorite(video);
   }
 
   // Ayuda a Angular a identificar qué elementos han cambiado en la lista

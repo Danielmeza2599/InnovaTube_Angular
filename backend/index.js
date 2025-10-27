@@ -6,7 +6,7 @@
  */
 require('dotenv').config(); // Carga las variables de entorno desde el archivo .env
 // Permite configurar la aplicación mediante variables de entorno
-
+const authMiddleware = require('./authMiddleware');// Se importa el middleware
 const express = require('express');
 const cors = require('cors');
 const bcrypt = require('bcrypt'); // para encriptar las contraseñas de forma segura
@@ -31,15 +31,62 @@ if (!JWT_SECRET) {
 }
 
 // --- Base de Datos Simulada para pruebas... ---
-// TODO: Ralizar la BAse de datos real para el proyecto
+// TODO: Realizar la BAse de datos real para el proyecto
 const users = [];
+// --- Base de Datos Simulada para Favoritos ---
+// Usarun objeto donde la 'key' es el userId
+// { 1: [videoObj1, videoObj2], 2: [videoObj3] }
+let userFavorites = {};
 
 // --- Rutas ---
+// OBTENER favoritos del usuario logueado
+app.get('/api/favorites', authMiddleware, (req, res) => {
+  const userId = req.user.userId;
+  const favorites = userFavorites[userId] || []; // Devuelve array vacío si no tiene
 
-// Ruta de prueba con mensaje de bienvenida
-// Se prueba que en el navegador se vea el mensaje
-app.get('/', (req, res) => {
-  res.json({ message: '¡Bienvenido a la API de InnovaTube!' });
+  console.log(`Petición GET /api/favorites para userId: ${userId}`);
+  res.json(favorites);
+});
+
+// AÑADIR un favorito
+app.post('/api/favorites', authMiddleware, (req, res) => {
+  const userId = req.user.userId;
+  const video = req.body; // El objeto de video (id, title, etc.)
+
+  if (!video || !video.id) {
+    return res.status(400).json({ error: 'Datos de video inválidos' });
+  }
+
+  // Iniciliza el array si es el primer favorito
+  if (!userFavorites[userId]) {
+    userFavorites[userId] = [];
+  }
+
+  // Evitar duplicados
+  const exists = userFavorites[userId].find(v => v.id === video.id);
+  if (!exists) {
+    userFavorites[userId].push(video);
+  }
+  
+  console.log(`Petición POST /api/favorites para userId: ${userId}`);
+  res.status(201).json(video); // 201 Created
+});
+
+// QUITAR un favorito
+app.delete('/api/favorites/:videoId', authMiddleware, (req, res) => {
+  const userId = req.user.userId;
+  const { videoId } = req.params;
+
+  if (!userFavorites[userId]) {
+    // Si no tiene favoritos, no hay nada que borrar
+    return res.status(204).send(); // 204 No Content
+  }
+
+  // Filtrar la lista, quitando el video
+  userFavorites[userId] = userFavorites[userId].filter(v => v.id !== videoId);
+
+  console.log(`Petición DELETE /api/favorites/${videoId} para userId: ${userId}`);
+  res.status(204).send(); // 204 No Content
 });
 
 // --- Endpoint para Registro de Usuario ---
