@@ -1,8 +1,10 @@
-/* * Proyecto: InnovaTube
-    * Archivo: index.js (Actualizado con PostgreSQL)
-    * Descripcion: Servidor Básico
-    * Author: Daniel Meza
+/* 
+ * Proyecto: InnovaTube
+ * Archivo: index.js 
+ * Descripción: Servidor Básico con base de datos implementada
+ * Author: Daniel Meza
 */
+
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
@@ -11,7 +13,8 @@ const jwt = require('jsonwebtoken');
 const axios = require('axios');
 
 const authMiddleware = require('./authMiddleware');
-const db = require('./db'); // Importar el 'pool' de DB
+// Se implementa base de datos con PostgreSQL
+const db = require('./db'); // Importo el 'pool' de base de datos
 
 const app = express();
 app.use(cors());
@@ -25,7 +28,7 @@ if (!JWT_SECRET) {
 
 // --- RUTAS DE FAVORITOS (Ahora con SQL) ---
 
-// OBTENER favoritos del usuario logueado
+// Obtengo los favoritos del usuario logueado
 app.get('/api/favorites', authMiddleware, async (req, res) => {
   const userId = req.user.userId;
   const searchTerm = (req.query.q || ''); // 'q' es el query param
@@ -33,7 +36,7 @@ app.get('/api/favorites', authMiddleware, async (req, res) => {
     SELECT * FROM favorites 
     WHERE user_id = $1 AND (title ILIKE $2 OR channel_title ILIKE $2)
   `;
-  // ILIKE es case-insensitive (ignora mayúsculas/minúsculas)
+  // Uso ILIKE para búsqueda case-insensitive
   const values = [userId, `%${searchTerm}%`];
 
   try {
@@ -45,7 +48,7 @@ app.get('/api/favorites', authMiddleware, async (req, res) => {
   }
 });
 
-// AÑADIR un favorito
+// Añado un nuevo favorito
 app.post('/api/favorites', authMiddleware, async (req, res) => {
   const userId = req.user.userId;
   const { id, title, thumbnailUrl, channelTitle } = req.body; // 'id' es el video_id
@@ -60,7 +63,7 @@ app.post('/api/favorites', authMiddleware, async (req, res) => {
     ON CONFLICT (user_id, video_id) DO NOTHING 
     RETURNING *
   `;
-  // ON CONFLICT... maneja automáticamente los duplicados (gracias al 'UNIQUE' creado)
+  // ON CONFLICT ayuda a evitar duplicados gracias al constraint UNIQUE
   const values = [userId, id, title, thumbnailUrl, channelTitle];
 
   try {
@@ -72,7 +75,7 @@ app.post('/api/favorites', authMiddleware, async (req, res) => {
   }
 });
 
-// QUITAR un favorito
+// Elimino un favorito
 app.delete('/api/favorites/:videoId', authMiddleware, async (req, res) => {
   const userId = req.user.userId;
   const { videoId } = req.params;
@@ -95,11 +98,12 @@ app.post('/api/register', async (req, res) => {
   const { nombreApellido, username, email, password } = req.body;
 
   try {
-    // Hashear la contraseña
+    // Hasheo la contraseña antes de guardarla
+    // usando bcrypt, para mayor seguridad
     const saltRounds = 10;
     const hashedPassword = await bcrypt.hash(password, saltRounds);
 
-    // Insertar en la base de datos
+    // Inserto el nuevo usuario en la base de datos
     const query = `
       INSERT INTO users (nombre_apellido, username, email, password)
       VALUES ($1, $2, $3, $4)
@@ -114,8 +118,8 @@ app.post('/api/register', async (req, res) => {
     res.status(201).json({ message: 'Usuario registrado con éxito' });
 
   } catch (err) {
-    // Manejo de errores (ej: usuario ya existe)
-    if (err.code === '23505') { // '23505' es el código de PostgreSQL para 'unique_violation'
+    // Manejo el error de usuario/email duplicado
+    if (err.code === '23505') { // Código de PostgreSQL para violación de unique
       console.log('Error: El usuario o correo ya existe');
       return res.status(409).json({ error: 'El usuario o correo ya existe' });
     }
@@ -130,7 +134,7 @@ app.post('/api/login', async (req, res) => {
   try {
     const { usernameOrEmail, password } = req.body;
 
-    // Para buscar al usuario por username O email
+    // Busco al usuario por username o email
     const query = 'SELECT * FROM users WHERE username = $1 OR email = $1';
     const result = await db.query(query, [usernameOrEmail]);
 
@@ -141,7 +145,7 @@ app.post('/api/login', async (req, res) => {
 
     const user = result.rows[0];
 
-    // Se compara la contraseña
+    // Comparo la contraseña proporcionada con el hash guardado
     const isPasswordMatch = await bcrypt.compare(password, user.password);
 
     if (!isPasswordMatch) {
@@ -149,7 +153,7 @@ app.post('/api/login', async (req, res) => {
       return res.status(401).json({ error: 'Credenciales inválidas' });
     }
 
-    // Se crea el Token JWT
+    // Genero el token JWT si las credenciales son correctas
     const token = jwt.sign(
       { userId: user.id, username: user.username },
       JWT_SECRET,
@@ -161,7 +165,7 @@ app.post('/api/login', async (req, res) => {
       message: 'Login exitoso',
       token: token,
       username: user.username,
-      nombreApellido: user.nombre_apellido, // 'nombre_apellido' de la DB
+      nombreApellido: user.nombre_apellido, // Tomo el nombre de la DB
     });
 
   } catch (err) {
@@ -169,7 +173,6 @@ app.post('/api/login', async (req, res) => {
     res.status(500).json({ error: 'Error interno del servidor' });
   }
 });
-
 
 // --- Endpoint de Búsqueda de YouTube (con SQL) ---
 app.get('/api/search', authMiddleware, async (req, res) => {
@@ -179,16 +182,16 @@ app.get('/api/search', authMiddleware, async (req, res) => {
   }
 
   const YOUTUBE_API_URL = 'https://www.googleapis.com/youtube/v3/search';
-  const API_KEY = process.env.YOUTUBE_API_KEY;
+  const API_KEY = process.env.YOUTUBE_API_KEY; // Se obtiene la llave desde el .env
 
   try {
-    // Se obtiene los favoritos del usuario DESDE LA DB
+    // Obtengo los favoritos del usuario desde la base de datos
     const userId = req.user.userId;
     const favQuery = 'SELECT video_id FROM favorites WHERE user_id = $1';
     const favResult = await db.query(favQuery, [userId]);
     const favoriteIds = new Set(favResult.rows.map(row => row.video_id));
 
-    // Se llama a la API de YouTube
+    // Llamo a la API de YouTube
     const response = await axios.get(YOUTUBE_API_URL, {
       params: {
         part: 'snippet',
@@ -199,7 +202,7 @@ app.get('/api/search', authMiddleware, async (req, res) => {
       },
     });
 
-    // Se formatea la respuesta (sin cambios)
+    // Formateo la respuesta manteniendo el estado de favorito
     const videos = response.data.items.map((item) => {
       const videoId = item.id.videoId;
       return {
@@ -207,7 +210,7 @@ app.get('/api/search', authMiddleware, async (req, res) => {
         title: item.snippet.title,
         thumbnailUrl: item.snippet.thumbnails.medium.url,
         channelTitle: item.snippet.channelTitle,
-        isFavorite: favoriteIds.has(videoId), // Sincronizado con la DB
+        isFavorite: favoriteIds.has(videoId), // Sincronizo con la DB
       };
     });
 
@@ -219,7 +222,7 @@ app.get('/api/search', authMiddleware, async (req, res) => {
   }
 });
 
-// --- Iniciar el Servidor ---
+// --- Inicio el Servidor ---
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Servidor corriendo en el puerto http://localhost:${PORT}`);
