@@ -64,14 +64,23 @@ export class VideoListComponent {
 
   // Método que maneja el evento cuando el usuario hace clic en favorito
   handleToggleFavorite(video: Video) {
-    // Delega la lógica de favoritos al servicio
+    // Se delega la lógica de favoritos al servicio
     // El servicio se encarga de actualizar el estado y persistir en localStorage
-    this.videoService.toggleFavorite(video);
+    // se ejecute la llamada POST/DELETE
+    // La UI ya se actualizó "optimistamente" en el servicio
+    this.videoService.toggleFavorite(video).subscribe({
+      next: () => console.log('Toggle de favorito exitoso (lista principal)'),
+      error: (err) => {
+        // Si falla, se revierte el cambio optimista
+        console.error('Error en toggle', err);
+        video.isFavorite = !video.isFavorite; // Revertir
+      }
+    });
   }
 
   // Ayuda a Angular a identificar qué elementos han cambiado en la lista
   trackById(index: number, video: Video): string {
-    // Usamos el ID único de YouTube como identificador
+    // Se usa el ID único de YouTube como identificador
     // Esto evita que Angular re-renderice todos los elementos cuando cambia la lista
     return video.id;
   }

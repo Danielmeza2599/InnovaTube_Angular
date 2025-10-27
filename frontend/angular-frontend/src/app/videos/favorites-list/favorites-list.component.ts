@@ -1,7 +1,7 @@
 import { Component, inject } from '@angular/core';
 import { CommonModule, AsyncPipe } from '@angular/common';
 import { ReactiveFormsModule, FormControl } from '@angular/forms';
-import { Observable } from 'rxjs';
+import { Observable, BehaviorSubject, combineLatest } from 'rxjs';
 import {
   debounceTime,
   distinctUntilChanged,
@@ -33,20 +33,33 @@ export class FavoritesListComponent {
 
   // Observable que reacciona a los cambios del buscador
   videos$: Observable<Video[]>;
+  private refreshList$ = new BehaviorSubject<void>(undefined);
 
   constructor() {
-    this.videos$ = this.searchControl.valueChanges.pipe(
+    // Se combina el buscador con el "refresh"
+    const search$ = this.searchControl.valueChanges.pipe(
       startWith(''),
-      debounceTime(300),
-      distinctUntilChanged(),
-      // Llamar al método que solo devuelve favoritos
-      switchMap((term) => this.videoService.getFavorites(term || ''))
+      debounceTime(300)
+    );
+
+    // combineLatest se dispara si 'search$' cambia O si 'refreshList$' emite
+    this.videos$ = combineLatest([search$, this.refreshList$]).pipe(
+      switchMap(([term, _]) => this.videoService.getFavorites(term || ''))
     );
   }
 
-  // Misma logica, decirle al servicio que cambie el estado
   handleToggleFavorite(video: Video) {
-    this.videoService.toggleFavorite(video);
+    this.videoService.toggleFavorite(video).subscribe({
+      next: () => {
+        console.log('Toggle de favorito exitoso (lista favoritos)');
+        // Forzar la recarga de la lista
+        this.refreshList$.next(); 
+      },
+      error: (err) => {
+        console.error('Error en toggle', err);
+        video.isFavorite = !video.isFavorite; // Revertir
+      }
+    });
   }
 
  

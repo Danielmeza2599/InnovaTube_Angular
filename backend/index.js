@@ -12,6 +12,7 @@ const cors = require('cors');
 const bcrypt = require('bcrypt'); // para encriptar las contraseñas de forma segura
 const jwt = require('jsonwebtoken'); // estandar para manejar sesiones de usuario en APIs
 // Token JWT (un string encriptado que contiene la info del usuario) y se lo envía de vuelta a Angular.
+const axios = require('axios');// Para hacer peticiones HTTP a la API de Google.
 
 // Inicializar la app de Express
 const app = express();
@@ -42,7 +43,18 @@ let userFavorites = {};
 // OBTENER favoritos del usuario logueado
 app.get('/api/favorites', authMiddleware, (req, res) => {
   const userId = req.user.userId;
-  const favorites = userFavorites[userId] || []; // Devuelve array vacío si no tiene
+  const searchTerm = (req.query.q || '').toLowerCase();
+
+  let favorites = userFavorites[userId] || [];
+
+  // Se filtra por el término de búsqueda (si existe)
+  if (searchTerm) {
+    favorites = favorites.filter(
+      (v) =>
+        v.title.toLowerCase().includes(searchTerm) ||
+        v.channelTitle.toLowerCase().includes(searchTerm)
+    );
+  }
 
   console.log(`Petición GET /api/favorites para userId: ${userId}`);
   res.json(favorites);
@@ -180,6 +192,65 @@ app.post('/api/login', async (req, res) => {
   } catch (error) {
     console.error('Error interno del servidor:', error);
     res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
+
+
+// --- Endpoint de Búsqueda de YouTube (Protegida) ---
+app.get('/api/search', authMiddleware, async (req, res) => {
+  // Se obtiene el término de búsqueda (query param)
+  const searchTerm = req.query.q;
+
+  if (!searchTerm) {
+    return res.status(400).json({ error: 'Se requiere un término de búsqueda (q)' });
+  }
+
+  console.log(`Petición GET /api/search con q=${searchTerm}`);
+
+  const YOUTUBE_API_URL = 'https://www.googleapis.com/youtube/v3/search';
+  const API_KEY = process.env.YOUTUBE_API_KEY;
+
+  // ---  LÍNEA DE PRUEBA ---
+  console.log('Clave de API que se está usando:', API_KEY);
+
+  try {
+    // Se obtiene los favoritos del usuario ANTES de buscar
+    const userId = req.user.userId;
+    const userFavs = userFavorites[userId] || [];
+    const favoriteIds = new Set(userFavs.map(v => v.id)); // Un Set para búsqueda rápida
+
+    // ... (Llamada a axios.get(YOUTUBE_API_URL, ...))
+    const response = await axios.get(YOUTUBE_API_URL, {
+      params: {
+        part: 'snippet',
+        q: searchTerm,
+        key: API_KEY,  //se envía la clave a Google
+        type: 'video',
+        maxResults: 10,
+      }
+    });
+
+    // Se formatea la respuesta de YouTube
+    // Se simplifica la respuesta de google
+    // para que coincida con el modelo 'Video' del frontend
+    const videos = response.data.items.map((item) => {
+      const videoId = item.id.videoId;
+      return {
+        id: item.id.videoId, // ID del video
+        title: item.snippet.title, // Título
+        thumbnailUrl: item.snippet.thumbnails.medium.url, // Miniatura
+        channelTitle: item.snippet.channelTitle, // Nombre del canal
+        // Sincronizar 'isFavorite' basado en los favoritos del usuario
+        isFavorite: favoriteIds.has(videoId),
+      };
+    });
+
+    // Se envian los videos formateados al frontend
+    res.json(videos);
+
+  } catch (error) {
+    console.error('Error al buscar en YouTube:', error.response?.data || error.message);
+    res.status(500).json({ error: 'Error al contactar la API de YouTube' });
   }
 });
 
